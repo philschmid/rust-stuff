@@ -1,37 +1,56 @@
-use tokenizers::tokenizer::Tokenizer;
+use tokenizers::tokenizer::{Result, Tokenizer};
+use tokenizers::Encoding;
 // use onnxruntime::{
 //     environment::Environment, ndarray::Array, tensor::OrtOwnedTensor, GraphOptimizationLevel,
 //     LoggingLevel,
 // };
 
 fn main() {
-
-    let tokenizer = Tokenizer::from_file("./tokenizer/tokenizers.json").unwrap();
-    let output = tokenizer.encode("My name is Philipp", true).unwrap();
-    // println!("{:?}", output.get_attention_mask().to_vec());
-    // println!("{:?}", output.get_ids().to_vec());
-
     let input = "My name is Philipp";
 
-    let input_ids = InferInputTensorBuilder::default()
-            .name("input_ids".to_string())
-            .dtype(TensorType::Int64)
-            .length(encoding.get_ids().len())
-            .with_u32_content(encoding.get_ids())
-            .build()
-            .unwrap();
+    let output = match tokenize(input) {
+        Ok(output) => output,
+        Err(e) => panic!(e),
+    };
+    println!("{:?}", output.get_tokens());
 
-        let attention_mask = InferInputTensorBuilder::default()
-            .name("attention_mask".to_string())
-            .dtype(TensorType::Int64)
-            .length(encoding.get_attention_mask().len())
-            .with_u32_content(encoding.get_attention_mask())
-            .build()
-            .unwrap();
+    let my_tokenizer = match Tokenizer::from_file("./tokenizer/tokenizers.json") {
+        Ok(tk) => tk,
+        Err(e) => panic!(e),
+    };
 
-    // match tokenizer.encode(input, true) {
-    //     Ok(encoding) => ,
-    //     Err(e) => format!("{:?}", e),
-    // }
-    // Ok(())
+    let output2 = ref_tokenize(&my_tokenizer, input).unwrap();
+
+    println!("{:?}", output2.get_tokens());
+}
+
+fn tokenize(input: &str) -> Result<Encoding> {
+    let tokenizer = Tokenizer::from_file("./tokenizer/tokenizers.json")?;
+    let output = tokenizer.encode(input, true)?;
+
+    Ok(output)
+}
+
+fn ref_tokenize(tokenizer: &Tokenizer, input: &str) -> Result<Encoding> {
+    let output = tokenizer.encode(input, true)?;
+    Ok(output)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_tokenize() {
+        let test_input = "My name is Philipp";
+        let test_output = tokenize(test_input).unwrap();
+        assert_eq!(
+            ["[CLS]", "my", "name", "is", "philipp", "[SEP]"],
+            test_output.get_tokens()
+        );
+    }
+    #[test]
+    #[should_panic]
+    fn another() {
+        panic!("Make this test fail");
+    }
 }
