@@ -1,4 +1,6 @@
-use actix_web::{error, get, post, web, App, Error, HttpResponse, HttpServer, Responder};
+use actix_web::{
+    error, get, post, web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder,
+};
 use serde::{Deserialize, Serialize};
 
 mod calculator;
@@ -16,9 +18,9 @@ struct CalculatorResult {
 
 #[derive(Deserialize)]
 struct CalculatorInput {
-    #[serde(default)] // default = 0
+    // #[serde(default)] // default = 0
     number1: i32,
-    #[serde(default)] // default = 0
+    // #[serde(default)] // default = 0
     number2: i32,
 }
 
@@ -55,21 +57,34 @@ async fn div(payload: web::Json<CalculatorInput>) -> impl Responder {
     }
 }
 
+fn json_error_handler(err: error::JsonPayloadError, _req: &HttpRequest) -> error::Error {
+    use actix_web::error::JsonPayloadError;
+
+    let detail = err.to_string();
+    let resp = match &err {
+        JsonPayloadError::ContentType => HttpResponse::UnsupportedMediaType()
+            .content_type("application/json")
+            .body(format!(r#"{{"error":"{}"}}"#, detail)),
+        JsonPayloadError::Deserialize(json_err) if json_err.is_data() => {
+            HttpResponse::UnprocessableEntity()
+                .content_type("application/json")
+                .body(format!(r#"{{"error":"{}"}}"#, detail))
+        }
+        _ => HttpResponse::BadRequest()
+            .content_type("application/json")
+            .body(format!(r#"{{"error":"{}"}}"#, detail)),
+    };
+    error::InternalError::from_response(err, resp).into()
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .app_data(
-                // Json extractor configuration for this resource.
-                web::JsonConfig::default().error_handler(|err, _req| {
-                    error::InternalError::from_response(
-                        "",
-                        HttpResponse::BadRequest()
-                            .content_type("application/json")
-                            .body(format!(r#"{{"error":"{}"}}"#, err)),
-                    )
-                    .into()
-                }),
+                web::JsonConfig::default()
+                    // register error_handler for JSON extractors.
+                    .error_handler(json_error_handler),
             )
             .service(health)
             .service(add)
