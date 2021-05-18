@@ -6,17 +6,17 @@ use serde::{Deserialize, Serialize};
 mod calculator;
 use calculator::Calculator;
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 struct HealthStatus {
     status: String,
 }
 
-#[derive(Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct CalculatorResult {
     result: i32,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct CalculatorInput {
     // #[serde(default)] // default = 0
     number1: i32,
@@ -79,6 +79,8 @@ fn json_error_handler(err: error::JsonPayloadError, _req: &HttpRequest) -> error
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    std::env::set_var("RUST_LOG", "actix_web=info");
+    env_logger::init();
     HttpServer::new(|| {
         App::new()
             .app_data(
@@ -93,4 +95,39 @@ async fn main() -> std::io::Result<()> {
     .bind("127.0.0.1:8080")?
     .run()
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use actix_web::{test, App, Error};
+
+    #[actix_rt::test]
+    async fn test_health() -> Result<(), Error> {
+        let app = App::new().service(health);
+        let mut app = test::init_service(app).await;
+
+        let req = test::TestRequest::get().uri("/health").to_request();
+
+        let resp: HealthStatus = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.status, "healthy");
+        Ok(())
+    }
+    #[actix_rt::test]
+    async fn test_add() -> Result<(), Error> {
+        let app = App::new().service(add);
+        let mut app = test::init_service(app).await;
+
+        let req = test::TestRequest::post()
+            .uri("/add")
+            .set_json(&CalculatorInput {
+                number1: 2,
+                number2: 43,
+            })
+            .to_request();
+
+        let resp: CalculatorResult = test::read_response_json(&mut app, req).await;
+        assert_eq!(resp.result, 2 + 43);
+        Ok(())
+    }
 }
