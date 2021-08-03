@@ -77,6 +77,18 @@ fn json_error_handler(err: error::JsonPayloadError, _req: &HttpRequest) -> error
     error::InternalError::from_response(err, resp).into()
 }
 
+use actix_web::Either;
+
+type RegisterResult = Either<HttpResponse, Result<&'static str, Error>>;
+
+async fn index() -> RegisterResult {
+    let task = "test2";
+    match task {
+        "test" => Either::A(HttpResponse::BadRequest().body("Bad data")),
+        _ => Either::B(Ok("Hello!")),
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=info");
@@ -91,6 +103,7 @@ async fn main() -> std::io::Result<()> {
             .service(health)
             .service(add)
             .service(div)
+            .route("/x", web::get().to(index))
     })
     .bind("127.0.0.1:8080")?
     .run()
