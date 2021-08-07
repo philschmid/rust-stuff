@@ -1,33 +1,37 @@
-use lambda::{handler_fn, Context};
-use serde_json::Value;
+use lambda_http::{handler, lambda_runtime, Context, IntoResponse, Request};
+use serde_json::json;
 
 type Error = Box<dyn std::error::Error + Sync + Send + 'static>;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    lambda::run(handler_fn(handler)).await?;
+    lambda_runtime::run(handler(hello)).await?;
     Ok(())
 }
 
-async fn handler(event: Value, _: Context) -> Result<Value, Error> {
-    Ok(event)
+async fn hello(_: Request, _: Context) -> Result<impl IntoResponse, Error> {
+    // `serde_json::Values` impl `IntoResponse` by default
+    // creating an application/json response
+    Ok(json!({
+        "message": "Go Serverless v1.0! Your function executed successfully!"
+    }))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     #[tokio::test]
-    async fn handler_handles() {
-        let event = json!({
-            "answer": 42
-        });
-        assert_eq!(
-            handler(event.clone(), Context::default())
-                .await
-                .expect("expected Ok(_) value"),
-            event
-        )
+    async fn hello_handles() {
+        let request = Request::default();
+        let expected = json!({
+            "message": "Go Serverless v1.0! Your function executed successfully!"
+        })
+        .into_response();
+        let response = hello(request, Context::default())
+            .await
+            .expect("expected Ok(_) value")
+            .into_response();
+        assert_eq!(response.body(), expected.body())
     }
 }
