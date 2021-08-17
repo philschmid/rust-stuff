@@ -1,0 +1,60 @@
+service: aws_lambda_rust
+
+frameworkVersion: '2'
+
+plugins:
+  - serverless-rust
+
+custom:
+  # this section customizes of the default
+  # serverless-rust plugin settings
+  rust:
+    # # flags passed to cargo
+    # cargoFlags: '--features enable-awesome'
+    # # custom docker tag
+    # dockerTag: 'some-custom-tag'
+    # #  custom docker image
+    # dockerImage: 'dockerUser/dockerRepo'
+    dockerless: true
+
+
+provider:
+  name: aws
+  runtime: rust
+  lambdaHashingVersion: 20201221
+  stage: ${opt:stage, 'dev'}
+  region: us-east-1
+  memorySize: 512
+  # environment:
+  #   S3_BUCKET_NAME: TEST
+  # # you can add statements to the Lambda function's IAM Role here
+  # iamRoleStatements:
+  #   - Effect: Allow
+  #     Action:
+  #       - s3:PutObject
+  #       - s3:GetObject
+  #       - s3:GetBucketLocation
+  #       - s3:ListBucket
+  #     Resource: 
+  #       - "arn:aws:s3:::${self:provider.environment.S3_BUCKET_NAME}"
+  #       - "arn:aws:s3:::${self:provider.environment.S3_BUCKET_NAME}/*"
+
+
+package:
+  individually: false
+  exclude:
+    - package.json
+    - package-log.json
+    - node_modules/**
+    - tests/**
+    - .serverless/**
+
+
+functions:
+  hello:
+    handler: hello
+    events:
+      - http:
+          path: /hello
+          method: get
+          cors: true
