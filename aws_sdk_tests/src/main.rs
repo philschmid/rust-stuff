@@ -67,7 +67,7 @@ async fn upload_local_file_to_s3() {
         .unwrap();
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 struct Person {
     name: String,
     age: u8,
@@ -97,6 +97,27 @@ async fn upload_struct_to_s3() {
         .unwrap();
 }
 
+async fn get_file_from_s3() {
+    let key = "data.json";
+
+    // aws credentials and client
+    let shared_config = get_credentials().await;
+    let client = aws_sdk_s3::Client::new(&shared_config);
+
+    let resp = client
+        .get_object()
+        .bucket(S3_BUCKET)
+        .key(key)
+        .send()
+        .await
+        .unwrap();
+
+    let data = resp.body.collect().await.unwrap().into_bytes().to_vec();
+    let p: Person = serde_json::from_slice(&data).unwrap();
+
+    println!("data: {:?}", p);
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     // // list dynamoDB tables
@@ -107,7 +128,10 @@ async fn main() -> Result<(), Error> {
     // upload_local_file_to_s3().await;
 
     // Uploads struct as json to s3
-    upload_struct_to_s3().await;
+    // upload_struct_to_s3().await;
+
+    // loads file from s3
+    get_file_from_s3().await;
 
     Ok(())
 }
