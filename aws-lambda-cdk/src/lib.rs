@@ -1,8 +1,9 @@
-use lambda_http::{
-    lambda_runtime::{Context, Error},
-    IntoResponse, Request, RequestExt, Response,
-};
+use std::collections::HashMap;
+
+use lambda_runtime::{Context, Error};
+
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 struct Human {
@@ -11,20 +12,40 @@ struct Human {
     #[serde(default)]
     age: u8,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct ProxyRequest {
+    headers: HashMap<String, String>,
+    body: String,
+}
+
+#[derive(Serialize)]
+pub struct ProxyResponse {
+    #[serde(rename = "statusCode")]
+    status_code: u16,
+
+    body: String,
+}
 #[derive(Serialize, Deserialize, Debug, Default)]
 struct ResponseBody {
     message: String,
     born: u16,
 }
 
-pub async fn handler(request: Request, _: Context) -> Result<impl IntoResponse, Error> {
+pub async fn handler(request: ProxyRequest, _: Context) -> Result<ProxyResponse, Error> {
     log::info!("{:?}", request);
-
-    // deserialize body
-    let body: Human = match request.payload() {
-        Ok(body) => body.unwrap(),
-        Err(err) => Err(err)?,
+    let body: Human = match serde_json::from_str(request.body.as_str()) {
+        Ok(val) => val,
+        Err(err) => {
+            log::info!("{:?}", err);
+            return Ok(ProxyResponse {
+                status_code: 403,
+                body: json!({"error":err.to_string()}).to_string(),
+            });
+        }
     };
+
+    log::info!("{:?}", body);
     // calculate born year
     let born: u16 = 2021 - (body.age as u16);
 
@@ -36,13 +57,15 @@ pub async fn handler(request: Request, _: Context) -> Result<impl IntoResponse, 
     log::info!("{:?}", res);
 
     // respond
-    Ok(serde_json::to_string(&res).unwrap().into_response())
+    Ok(ProxyResponse {
+        status_code: 200,
+        body: serde_json::to_string(&res).unwrap(),
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     #[tokio::test]
     async fn test_lambda_handler() {
@@ -50,17 +73,13 @@ mod tests {
             "name":"Philipp",
             "age":28
         }"#;
-        let request = Request::new(lambda_http::Body::from(data));
-        let data = json!(
-        {
-            "name":"Philipp",
-            "age":28
-        });
-        let expected = data.into_response();
+        let request = ProxyRequest {
+            headers: HashMap::new(),
+            body: data.to_string(),
+        };
         let response = handler(request, Context::default())
             .await
-            .expect("expected Ok(_) value")
-            .into_response();
-        assert_eq!(response.body(), expected.body())
+            .expect("expected Ok(_) value");
+        assert_eq!(response.status_code, 200)
     }
 }
