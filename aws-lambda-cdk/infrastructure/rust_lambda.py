@@ -42,7 +42,9 @@ class RustLambdaStack(cdk.Stack):
         lambda_handler_path = os.path.join(os.getcwd(), "target", target, "release", "lambda")
 
         # executing build
-        subprocess.run(build_command.split(" "))
+        output = subprocess.run(build_command.split(" "), capture_output=True)
+        if "error:" in output.stderr.decode():
+            raise ValueError(output.stderr.decode())
         os.makedirs(f"target/{target}/release/lambda", exist_ok=True)
 
         shutil.copy(os.path.join(build_directory, "bootstrap"), lambda_handler_path)

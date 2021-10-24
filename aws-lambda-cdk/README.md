@@ -30,3 +30,5 @@ mkdir .cargo
 echo '[target.x86_64-unknown-linux-musl]
 linker = "x86_64-linux-musl-gcc"' > .cargo/config
 ```
+
+https://dev.to/aviillouz/writing-a-lambda-with-rust-using-aws-lambda-rust-runtime-and-aws-sdk-rust-1aln
