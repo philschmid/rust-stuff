@@ -63,19 +63,7 @@ class RustLambdaStack(cdk.Stack):
             handler="not.required",
             log_retention=RetentionDays.ONE_WEEK,
             architectures=[target_architecture],
-            environment={"RUST_BACKTRACE": "1"},
+            # environment={"RUST_BACKTRACE": "1"},
         )
-
-        # add policy for invoking
-        # lambda_fn.add_to_role_policy(
-        #     iam.PolicyStatement(
-        #         actions=[
-        #             "sagemaker:InvokeEndpoint",
-        #         ],
-        #         resources=[
-        #             f"arn:aws:sagemaker:{self.region}:{self.account}:endpoint/{endpoint.endpoint_name}",
-        #         ],
-        #     )
-        # )
 
         api = _apigw.LambdaRestApi(self, "hf_api_gw", proxy=True, handler=lambda_fn)
