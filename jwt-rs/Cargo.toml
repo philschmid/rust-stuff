@@ -9,3 +9,4 @@ edition = "2018"
 jsonwebtoken = "7.2.0"
 serde = {version = "1.0.130", features = ["derive"] }
 num_cpus = "1.0"
+uuid = { version = "0.8", features = ["serde", "v4"] }

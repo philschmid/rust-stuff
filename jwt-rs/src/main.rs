@@ -8,25 +8,31 @@ extern crate num_cpus;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Claims {
-    sub: String, // Subject (customer)
+    sub: String,         // Subject (unique id for process)
     exp: usize, // Required (validate_exp defaults to true in validation). Expiration time (as UTC timestamp)
     iat: u64,   // Issued at (as UTC timestamp)
     iss: String, // Issuer
     n_cpus: u8, // number of cpus
     n_gpus: u8, // number of gpus
+    customer_id: String, // customerID
 }
 
 impl Claims {
     fn new(customer_id: &str) -> Claims {
         Claims {
-            sub: customer_id.to_string(),
+            sub: default_sub(),
             exp: 1000000000000,
             iat: default_iat(),
             iss: default_iss(),
             n_cpus: default_n_cpus(),
             n_gpus: default_n_gpus(),
+            customer_id: customer_id.to_string(),
         }
     }
+}
+
+fn default_sub() -> String {
+    uuid::Uuid::new_v4().to_string()
 }
 
 fn default_iss() -> String {
