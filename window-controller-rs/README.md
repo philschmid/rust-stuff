@@ -15,3 +15,6 @@ dnf install -y wmctrl
 
 # You get the idea
 ```
+
+
+os.system(f'''/usr/bin/osascript -e 'tell app "Visual Studio Code" to close (every window whose name is "allen_grammar.txt")' ''')
