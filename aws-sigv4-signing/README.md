@@ -16,3 +16,4 @@ Signature Version 4 (SigV4) is the process to add authentication information to 
 
 * [Python Example](https://docs.aws.amazon.com/general/latest/gr/sigv4-signed-request-examples.html)
 * [Rusoto signature](https://github.com/rusoto/rusoto/tree/master/rusoto/signature)
+https://github.com/awslabs/smithy-rs/blob/d293ab34f9b8dc3e0f60bb06c17078ac4f8be4c8/aws/rust-runtime/aws-sigv4/src/sign.rs
