@@ -8,3 +8,7 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1.13.0", features = ["full"] }
 futures-util = "0.3.17"
+
+# for implementing the streams example
+async-stream = "0.3.2"
+futures-core="0.3.19"
