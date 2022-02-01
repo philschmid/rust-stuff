@@ -1,0 +1,16 @@
+[package]
+name = "tokio-with-pyo3-asyncio"
+version = "0.1.0"
+edition = "2021"
+
+# [build-dependencies]
+# pyo3-build-config = "0.15.1"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { version = "1.13.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+env_logger = "0.9"
+pyo3 = {version = "0.15.1", features = ["auto-initialize"]} 
+pyo3-asyncio = {version = "0.15.0", features = ["tokio-runtime","attributes"]}
