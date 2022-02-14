@@ -5,8 +5,7 @@ type PyFunction = Py<PyAny>;
 use tower::ServiceBuilder;
 
 use axum::{
-    extract::Extension, http::Method, response::IntoResponse, routing::post, AddExtensionLayer,
-    Json, Router,
+    extract::Extension, response::IntoResponse, routing::post, AddExtensionLayer, Json, Router,
 };
 use serde::{Deserialize, Serialize};
 
@@ -26,39 +25,17 @@ struct TextClassificationResponse {
 }
 
 async fn predict_route(payload: PredictRequest, handler: Py<PyAny>) -> impl IntoResponse {
-    println!("{:?}", handler);
     let fut = Python::with_gil(|py| {
         let coro = handler.call1(py, (payload.inputs.as_str(),)).unwrap();
         pyo3_asyncio::tokio::into_future(coro.as_ref(py))
     })
     .unwrap();
-    println!("no infrence yet");
     let res = fut.await.unwrap();
 
     let res = Python::with_gil(|py| -> PyResult<Vec<TextClassificationResponse>> {
         res.extract::<Vec<TextClassificationResponse>>(py)
     });
     Json(res.unwrap())
-}
-
-// async fn predict_route(
-//     Json(payload): Json<PredictRequest>,
-//     Extension(handler): Extension<Py<PyAny>>,
-// ) -> impl IntoResponse {
-async fn handle(input: &str, handler: &PyFunction) -> Vec<TextClassificationResponse> {
-    let fut = Python::with_gil(|py| {
-        let coro = handler.call1(py, (input,)).unwrap();
-        pyo3_asyncio::tokio::into_future(coro.as_ref(py))
-    })
-    .unwrap();
-    println!("no infrence yet");
-    println!("{:?}", handler);
-    let res = fut.await.unwrap();
-
-    let res = Python::with_gil(|py| -> PyResult<Vec<TextClassificationResponse>> {
-        res.extract::<Vec<TextClassificationResponse>>(py)
-    });
-    res.unwrap()
 }
 
 #[pyo3_asyncio::tokio::main]
@@ -74,10 +51,6 @@ async fn main() -> PyResult<()> {
         handler.extract().unwrap()
     });
     println!("model loaded");
-
-    let res = handle("I like you. I like you.I like you.I like you.I like you.I like you.I like you.I like you.I like you.I like you.I like you.I like you.I like you.I like you.I like you.I like you.I like you.", &pipeline);
-    println!("do i come before infernece?");
-    println!("{:?}", res.await);
 
     let middleware_stack = ServiceBuilder::new().layer(AddExtensionLayer::new(pipeline));
 
