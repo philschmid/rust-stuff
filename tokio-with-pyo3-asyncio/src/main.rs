@@ -25,10 +25,7 @@ struct TextClassificationResponse {
     score: f32,
 }
 
-async fn predict_route(
-    Json(payload): Json<PredictRequest>,
-    Extension(handler): Extension<Py<PyAny>>,
-) -> impl IntoResponse {
+async fn predict_route(payload: PredictRequest, handler: Py<PyAny>) -> impl IntoResponse {
     println!("{:?}", handler);
     let fut = Python::with_gil(|py| {
         let coro = handler.call1(py, (payload.inputs.as_str(),)).unwrap();
@@ -66,6 +63,9 @@ async fn handle(input: &str, handler: &PyFunction) -> Vec<TextClassificationResp
 
 #[pyo3_asyncio::tokio::main]
 async fn main() -> PyResult<()> {
+    // get the pyo3_asyncio context in main
+    let pyo3_asyncio_event_loop = Python::with_gil(pyo3_asyncio::tokio::get_current_locals)?;
+
     const PYTHON_MODULE: &str = include_str!("../handler.py");
 
     let pipeline: PyFunction = Python::with_gil(|py| {
@@ -82,7 +82,18 @@ async fn main() -> PyResult<()> {
     let middleware_stack = ServiceBuilder::new().layer(AddExtensionLayer::new(pipeline));
 
     let app = Router::new()
-        .route("/predict", post(predict_route))
+        .route(
+            "/predict",
+            post(
+                move |Json(payload): Json<PredictRequest>,
+                      Extension(handler): Extension<Py<PyAny>>| {
+                    pyo3_asyncio::tokio::scope(
+                        pyo3_asyncio_event_loop.clone(),
+                        predict_route(payload, handler),
+                    )
+                },
+            ),
+        )
         .layer(middleware_stack);
 
     // run our app with hyper
